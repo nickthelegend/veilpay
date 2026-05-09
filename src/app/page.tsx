@@ -47,7 +47,7 @@ export default function LandingPage() {
           chromaticAberration={0}
           dither={0}
           curvature={0.05}
-          tint="#4ade80"
+          tint="#ccff00"
           mouseReact
           mouseStrength={0.6}
           pageLoadAnimation
@@ -78,32 +78,32 @@ export default function LandingPage() {
         padding: '20px',
         textAlign: 'center'
       }}>
-        {/* Title - dalto style font */}
+        {/* Title */}
         <h1 style={{
           fontSize: 'clamp(3rem, 12vw, 5rem)',
-          fontWeight: 700,
+          fontWeight: 900,
           color: 'white',
           marginBottom: '16px',
-          letterSpacing: '-0.03em',
-          fontFamily: 'var(--font-space-grotesk), sans-serif',
+          letterSpacing: '-0.05em',
           textShadow: '0 4px 30px rgba(0,0,0,0.5)'
         }}>
-          VeilPay<span style={{ color: '#ccff00' }}>.</span>
+          Obolus<span style={{ color: '#ccff00' }}>.</span>
         </h1>
 
-        {/* Tagline - White text */}
+        {/* Tagline */}
         <p style={{
           fontSize: 'clamp(1rem, 3vw, 1.25rem)',
           color: 'rgba(255,255,255,0.9)',
           marginBottom: '48px',
           maxWidth: '400px',
-          lineHeight: 1.6
+          lineHeight: 1.6,
+          fontWeight: 600
         }}>
-          Round up your spending,<br />
-          invest in your future privately.
+          Privacy-First Dark Pool<br />
+          Trading & Micro-Payments
         </p>
 
-        {/* CTA Button - Click animation only */}
+        {/* CTA Button */}
         <Link href="/dashboard" style={{ textDecoration: 'none' }}>
           <button
             className="landing-cta-button"
@@ -111,33 +111,24 @@ export default function LandingPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
-              padding: '18px 36px',
-              fontSize: '1.125rem',
-              fontWeight: 600,
+              padding: '20px 40px',
+              fontSize: '18px',
+              fontWeight: 800,
               color: '#111111',
-              background: 'linear-gradient(135deg, #ccff00 0%, #b8e600 100%)',
+              background: 'var(--primary)',
               border: 'none',
-              borderRadius: '16px',
+              borderRadius: '24px',
               cursor: 'pointer',
-              transition: 'transform 0.1s ease',
-              boxShadow: '0 4px 20px rgba(204, 255, 0, 0.3)'
-            }}
-            onMouseDown={(e) => {
-              e.currentTarget.style.transform = 'scale(0.95)';
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 8px 30px rgba(204, 255, 0, 0.3)'
             }}
           >
-            Get Started
+            Launch App
             <ArrowRight size={20} />
           </button>
         </Link>
 
-        {/* Stats - White text */}
+        {/* Stats */}
         <div style={{
           display: 'flex',
           gap: '48px',
@@ -146,23 +137,25 @@ export default function LandingPage() {
           justifyContent: 'center'
         }}>
           {[
-            { value: '50K+', label: 'Active Users' },
-            { value: '2.5M CFX', label: 'Invested' },
-            { value: '12.4%', label: 'Avg. Return' }
+            { value: '12K+', label: 'Active Nodes' },
+            { value: '$1.2M', label: 'Dark Pool Volume' },
+            { value: 'ZK-SNARK', label: 'Proof System' }
           ].map((stat, index) => (
             <div key={index} style={{ textAlign: 'center' }}>
               <p style={{
-                fontSize: '1.75rem',
-                fontWeight: 700,
+                fontSize: '28px',
+                fontWeight: 800,
                 color: '#ccff00',
                 marginBottom: '4px',
-                fontFamily: 'var(--font-space-grotesk), sans-serif'
               }}>
                 {stat.value}
               </p>
               <p style={{
-                fontSize: '0.875rem',
-                color: 'rgba(255,255,255,0.85)'
+                fontSize: '14px',
+                color: 'rgba(255,255,255,0.85)',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
               }}>
                 {stat.label}
               </p>
@@ -171,7 +164,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Bottom Text - White */}
+      {/* Bottom Text */}
       <div style={{
         position: 'absolute',
         bottom: '24px',
@@ -181,10 +174,13 @@ export default function LandingPage() {
         zIndex: 2
       }}>
         <p style={{
-          fontSize: '0.75rem',
-          color: 'rgba(255,255,255,0.6)'
+          fontSize: '12px',
+          color: 'rgba(255,255,255,0.5)',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em'
         }}>
-          The premier private micro-investment platform on Conflux eSpace
+          Privacy Infrastructure for the Solana Ecosystem
         </p>
       </div>
     </div>

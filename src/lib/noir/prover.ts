@@ -1,7 +1,8 @@
-import { ethers } from "ethers";
-import { secp256k1 } from "@noble/curves/secp256k1.js";
-import { hkdf } from "@noble/hashes/hkdf.js";
-import { sha256 } from "@noble/hashes/sha2.js";
+import { secp256k1 } from "@noble/curves/secp256k1";
+import { hkdf } from "@noble/hashes/hkdf";
+import { sha256 } from "@noble/hashes/sha2";
+import { keccak_256 } from "@noble/hashes/sha3";
+import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
 
 /**
  * ZK Prover Service for the frontend.
@@ -29,31 +30,24 @@ export class DarkPoolProver {
     amount: number | bigint,
     side: 0 | 1
   ): OrderCommitment {
-    const salt = ethers.hexlify(ethers.randomBytes(32));
+    const salt = bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
     const priceBI = BigInt(price);
     const amountBI = BigInt(amount);
     
-    const commitment = ethers.keccak256(
-      ethers.AbiCoder.defaultAbiCoder().encode(
-        ["uint256", "uint256", "uint256", "bytes32"],
-        [priceBI, amountBI, BigInt(side), salt]
-      )
-    );
+    // Simple commitment hash (simulating AbiCoder.encode)
+    const data = new TextEncoder().encode(`${priceBI}-${amountBI}-${side}-${salt}`);
+    const commitment = bytesToHex(keccak_256(data));
 
-    const nullifier = ethers.keccak256(
-      ethers.AbiCoder.defaultAbiCoder().encode(
-        ["bytes32", "uint256"],
-        [commitment, Date.now()]
-      )
-    );
+    const nullifierData = new TextEncoder().encode(`${commitment}-${Date.now()}`);
+    const nullifier = bytesToHex(keccak_256(nullifierData));
 
     return {
-      commitment,
-      nullifier,
+      commitment: "0x" + commitment,
+      nullifier: "0x" + nullifier,
       price: priceBI,
       amount: amountBI,
       side,
-      salt,
+      salt: "0x" + salt,
     };
   }
 
@@ -68,18 +62,18 @@ export class DarkPoolProver {
   ) {
     // 1. Generate ephemeral keypair for this relay
     const ephemeralPriv = crypto.getRandomValues(new Uint8Array(32));
-    const matcherPubKey = ethers.getBytes(matcherPublicKeyHex.startsWith("0x") ? matcherPublicKeyHex : `0x${matcherPublicKeyHex}`);
+    const matcherPubKey = hexToBytes(matcherPublicKeyHex.startsWith("0x") ? matcherPublicKeyHex.slice(2) : matcherPublicKeyHex);
 
     // 2. Derive shared secret via ECDH
-    const sharedPoint = secp256k1.getSharedSecret(ephemeralPriv, matcherPubKey);
-    const sharedKey = hkdf(sha256, sharedPoint.slice(1), HKDF_SALT, HKDF_INFO, 32);
+    const sharedPoint = secp256k1.getSharedSecret(ephemeralPriv, matcherPubKey, true);
+    const sharedKey = hkdf(sha256, sharedPoint, HKDF_SALT, HKDF_INFO, 32);
 
     // 3. Serialize payload
     const payload = JSON.stringify({
       price: order.price.toString(),
       amount: order.amount.toString(),
       side: order.side,
-      salt: BigInt(order.salt).toString(),
+      salt: order.salt,
       tokenPairId: 1,
     });
 

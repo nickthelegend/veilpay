@@ -1,152 +1,117 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { ethers } from "ethers";
-import { CONTRACTS } from "@/lib/contracts";
-import VAULT_ABI from "@/lib/abis/Vault.json";
-import TOKEN_ABI from "@/lib/abis/TestToken.json";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useState } from "react";
 import { Loader2, Plus, ArrowUpRight, ShieldCheck, Wallet } from "lucide-react";
+import { useWallet } from "@/lib/solana/wallet/context";
+import { useBalance } from "@/lib/solana/hooks/use-balance";
 
 export default function VaultManager() {
-  const { address } = useAccount();
-  const [depositAmount, setDepositAmount] = useState("");
-  const { writeContract, data: hash, isPending: isSubmitting } = useWriteContract();
+  const { wallet } = useWallet();
+  const address = wallet?.account.address;
+  const { balance, refetch } = useBalance(address);
   
-  // Convex state
-  const vaultBalance = useQuery(api.darkpool.getVaultBalance, 
-    address ? { walletAddress: address, tokenAddress: CONTRACTS.TestToken } : "skip"
-  );
-  const updateBalance = useMutation(api.darkpool.updateVaultBalance);
-
-  // Contract state
-  const { data: tokenBalance } = useReadContract({
-    address: CONTRACTS.TestToken,
-    abi: TOKEN_ABI,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-  });
-
-  const { data: allowance } = useReadContract({
-    address: CONTRACTS.TestToken,
-    abi: TOKEN_ABI,
-    functionName: "allowance",
-    args: address ? [address, CONTRACTS.Vault] : undefined,
-  });
-
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const [depositAmount, setDepositAmount] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [vaultBalance, setVaultBalance] = useState("0.00");
 
   const handleDeposit = async () => {
     if (!depositAmount || !address) return;
-    const amount = ethers.parseUnits(depositAmount, 18);
-
-    if ((allowance as bigint) < amount) {
-      writeContract({
-        address: CONTRACTS.TestToken,
-        abi: TOKEN_ABI,
-        functionName: "approve",
-        args: [CONTRACTS.Vault, amount],
-      });
-      return;
-    }
-
-    writeContract({
-      address: CONTRACTS.Vault,
-      abi: VAULT_ABI,
-      functionName: "deposit",
-      args: [CONTRACTS.TestToken, amount],
-    });
+    setIsSubmitting(true);
+    // Mock deposit
+    setTimeout(() => {
+        setVaultBalance((prev) => (parseFloat(prev) + parseFloat(depositAmount)).toFixed(2));
+        setDepositAmount("");
+        setIsSubmitting(false);
+        refetch();
+    }, 1500);
   };
 
-  useEffect(() => {
-    if (isSuccess && address) {
-      // Small delay to allow chain to update, then we'd ideally poll the contract
-      // For MVP, we'll just trigger a refresh logic or the indexer would update Convex
-      // Here we manually trigger a balance update in Convex for immediate UX
-      // (In production, the Matcher Indexer would do this via contract events)
-    }
-  }, [isSuccess, address]);
-
   return (
-    <div className="card-tertiary p-6 rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md">
-      <div className="flex items-center justify-between mb-6">
+    <div className="main-card" style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-[#ccff00]" />
+          <h3 style={{ fontSize: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <ShieldCheck size={20} color="var(--primary)" />
             Privacy Vault
           </h3>
-          <p className="text-xs text-white/50">Shield funds for private trading</p>
+          <p style={{ fontSize: '12px', color: 'var(--accent)', margin: 0 }}>Shield funds for private trading</p>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-white/40 uppercase tracking-wider font-medium">Vault Balance</p>
-          <p className="text-xl font-bold font-mono text-[#ccff00]">
-            {vaultBalance ? ethers.formatUnits(vaultBalance.balance, 18) : "0.00"} 
-            <span className="text-sm ml-1 text-white/60">dUSDC</span>
+        <div style={{ textAlign: 'right' }}>
+          <p className="label-caps" style={{ color: 'var(--accent)', margin: 0 }}>Vault Balance</p>
+          <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary)', margin: 0 }}>
+            {vaultBalance} 
+            <span style={{ fontSize: '14px', marginLeft: '6px', color: 'var(--accent)' }}>PUSD</span>
           </p>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="relative group">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ position: 'relative' }}>
           <input
             type="number"
             placeholder="0.00"
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
-            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-lg font-mono focus:outline-none focus:border-[#ccff00]/50 transition-all group-hover:border-white/20"
+            style={{
+                width: '100%',
+                background: '#ffffff',
+                border: '1px solid var(--border)',
+                borderRadius: '16px',
+                padding: '16px',
+                color: 'var(--foreground)',
+                fontSize: '18px',
+                fontWeight: 800,
+                outline: 'none'
+            }}
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
+          <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }}>
             <button 
-              onClick={() => setDepositAmount(ethers.formatUnits(tokenBalance as bigint || 0n, 18))}
-              className="px-2 py-1 text-[10px] bg-white/10 hover:bg-white/20 rounded uppercase font-bold text-white/70 transition-colors"
+              onClick={() => setDepositAmount(balance?.toString() || "0")}
+              className="label-caps"
+              style={{ padding: '4px 8px', background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: '6px', color: 'var(--accent)', cursor: 'pointer' }}
             >
               Max
             </button>
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={handleDeposit}
-            disabled={isSubmitting || isConfirming || !depositAmount}
-            className="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group transition-all"
-          >
-            {isSubmitting || isConfirming ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (allowance as bigint) < ethers.parseUnits(depositAmount || "0", 18) ? (
-              <>Approve dUSDC</>
-            ) : (
-              <>
-                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-                Deposit to Vault
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          onClick={handleDeposit}
+          disabled={isSubmitting || !depositAmount}
+          style={{
+            width: '100%',
+            background: 'var(--primary)',
+            color: 'var(--primary-foreground)',
+            padding: '16px',
+            borderRadius: '20px',
+            border: 'none',
+            fontWeight: 800,
+            fontSize: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            opacity: (isSubmitting || !depositAmount) ? 0.6 : 1
+          }}
+        >
+          {isSubmitting ? (
+            <Loader2 size={20} className="animate-spin" />
+          ) : (
+            <>
+              <Plus size={20} />
+              Deposit to Vault
+            </>
+          )}
+        </button>
 
-        <div className="flex items-center gap-2 px-1">
-          <Wallet className="w-3 h-3 text-white/30" />
-          <p className="text-[10px] text-white/30">
-            Wallet Balance: {tokenBalance ? Number(ethers.formatUnits(tokenBalance as bigint, 18)).toFixed(2) : "0.00"} dUSDC
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Wallet size={14} color="var(--accent)" />
+          <p style={{ fontSize: '12px', color: 'var(--accent)', margin: 0 }}>
+            Wallet Balance: {balance?.toFixed(2) || "0.00"} SOL
           </p>
         </div>
       </div>
-      
-      {hash && (
-        <div className="mt-4 p-3 bg-[#ccff00]/5 border border-[#ccff00]/10 rounded-lg flex items-center justify-between">
-          <span className="text-[10px] text-[#ccff00]/80">Transaction in progress...</span>
-          <a 
-            href={`${CONTRACTS.rpc.includes('testnet') ? 'https://evmtestnet.confluxscan.io' : 'https://evm.confluxscan.io'}/tx/${hash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[10px] text-[#ccff00] hover:underline flex items-center gap-1"
-          >
-            View <ArrowUpRight className="w-3 h-3" />
-          </a>
-        </div>
-      )}
     </div>
   );
 }

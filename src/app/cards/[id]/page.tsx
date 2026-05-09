@@ -8,49 +8,43 @@ import MobileNav from "@/components/MobileNav";
 import VirtualCard from "@/components/VirtualCard";
 import TransactionIcon from "@/components/TransactionIcon";
 import PageTransition from "@/components/PageTransition";
-import { useAccount } from "wagmi";
-import { useQuery } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
+import { useWallet } from "@/lib/solana/wallet/context";
 
 export default function CardDetailPage() {
-    const { address, isConnected } = useAccount();
+    const { status } = useWallet();
+    const isConnected = status === "connected";
     const [showBalance, setShowBalance] = useState(true);
     const [showMenu, setShowMenu] = useState(false);
 
-    // Real data from Convex
-    const history = useQuery(api.payments.getPaymentHistory, 
-        address ? { walletAddress: address } : "skip"
-    );
+    // Mock data for payment history
+    const history = isConnected ? [
+        { id: "1", direction: "sent", amount: "5.00", currency: "SOL", timestamp: Date.now() - 86400000, status: "confirmed" },
+        { id: "2", direction: "receive", amount: "10.00", currency: "SOL", timestamp: Date.now() - 172800000, status: "confirmed" },
+    ] : [];
 
     if (!isConnected) {
         return (
-            <div className="mobile-container" style={{ background: '#111111', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="mobile-container" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: '1.25rem', fontWeight: 600, color: '#ffffff', marginBottom: '12px' }}>Card not found</p>
-                    <Link href="/dashboard" style={{ color: '#ccff00', fontWeight: 500, textDecoration: 'none' }}>Back to Dashboard</Link>
+                    <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--foreground)', marginBottom: '12px', margin: 0 }}>Card not found</p>
+                    <Link href="/dashboard" style={{ color: 'var(--primary)', fontWeight: 800, textDecoration: 'none' }}>Back to Dashboard</Link>
                 </div>
             </div>
         );
     }
 
-    // Filter transactions (demo: show all related to this account)
-    const cardTransactions = history?.slice(0, 5) || [];
-    
-    // Calculate real stats
-    const totalSpent = history?.filter((tx: any) => tx.direction === "sent")
-        .reduce((acc: number, tx: any) => acc + parseFloat(tx.amountFormatted.split(' ')[0]), 0) || 0;
-    const totalReceived = history?.filter((tx: any) => tx.direction === "receive")
-        .reduce((acc: number, tx: any) => acc + parseFloat(tx.amountFormatted.split(' ')[0]), 0) || 0;
+    const totalSpent = history.filter(tx => tx.direction === "sent").reduce((acc, tx) => acc + parseFloat(tx.amount), 0);
+    const totalReceived = history.filter(tx => tx.direction === "receive").reduce((acc, tx) => acc + parseFloat(tx.amount), 0);
 
     const menuItems = [
-        { icon: <Lock size={20} />, label: "Lock Card", color: '#ffffff' },
-        { icon: <RefreshCw size={20} />, label: "Change Limit", color: '#ffffff' },
-        { icon: <CardIcon size={20} />, label: "Card Details", color: '#ffffff' },
+        { icon: <Lock size={20} />, label: "Lock Card", color: 'var(--foreground)' },
+        { icon: <RefreshCw size={20} />, label: "Change Limit", color: 'var(--foreground)' },
+        { icon: <CardIcon size={20} />, label: "Card Details", color: 'var(--foreground)' },
         { icon: <Trash2 size={20} />, label: "Delete Card", color: '#ef4444' },
     ];
 
     return (
-        <div className="mobile-container" style={{ background: '#111111', minHeight: '100vh', paddingBottom: '100px', color: '#ffffff' }}>
+        <div className="mobile-container" style={{ minHeight: '100vh', paddingBottom: '100px' }}>
             {/* Header */}
             <header style={{
                 padding: '16px 20px',
@@ -58,47 +52,45 @@ export default function CardDetailPage() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 position: 'relative',
-                borderBottom: '1px solid rgba(255,255,255,0.05)'
+                borderBottom: '1px solid var(--border)'
             }}>
                 <Link href="/dashboard" style={{
                     padding: '8px',
                     textDecoration: 'none',
-                    background: 'rgba(255,255,255,0.05)',
+                    background: 'rgba(0,0,0,0.05)',
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
                 }}>
-                    <ArrowLeft size={24} color="#ccff00" />
+                    <ArrowLeft size={24} color="var(--primary)" />
                 </Link>
-                <h1 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#ffffff' }}>Card Details</h1>
+                <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>Card Details</h1>
                 <button
                     onClick={() => setShowMenu(!showMenu)}
                     style={{
                         padding: '8px',
-                        background: 'rgba(255,255,255,0.05)',
+                        background: 'rgba(0,0,0,0.05)',
                         border: 'none',
                         borderRadius: '12px',
                         cursor: 'pointer'
                     }}
                 >
-                    <MoreVertical size={24} color="#ffffff" />
+                    <MoreVertical size={24} color="var(--foreground)" />
                 </button>
 
                 {/* Dropdown Menu */}
                 {showMenu && (
-                    <div style={{
+                    <div className="main-card" style={{
                         position: 'absolute',
                         top: '64px',
                         right: '20px',
-                        background: '#1a1a1a',
                         borderRadius: '20px',
-                        boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
                         overflow: 'hidden',
                         zIndex: 100,
                         minWidth: '220px',
-                        border: '1px solid rgba(255,255,255,0.05)'
-                    }} className="animate-slide-up">
+                        padding: 0
+                    }}>
                         {menuItems.map((item, i) => (
                             <button
                                 key={item.label}
@@ -110,11 +102,11 @@ export default function CardDetailPage() {
                                     width: '100%',
                                     background: 'none',
                                     border: 'none',
-                                    borderBottom: i < menuItems.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                                    borderBottom: i < menuItems.length - 1 ? '1px solid var(--border)' : 'none',
                                     cursor: 'pointer',
                                     color: item.color,
-                                    fontSize: '0.9375rem',
-                                    fontWeight: 500,
+                                    fontSize: '15px',
+                                    fontWeight: 800,
                                     textAlign: 'left'
                                 }}
                             >
@@ -142,117 +134,102 @@ export default function CardDetailPage() {
                     }}>
                         <button
                             onClick={() => setShowBalance(!showBalance)}
+                            className="main-card"
                             style={{
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 gap: '8px',
                                 padding: '16px',
-                                background: 'rgba(255,255,255,0.03)',
-                                border: '1px solid rgba(255,255,255,0.05)',
-                                borderRadius: '20px',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s'
                             }}
                         >
-                            {showBalance ? <EyeOff size={24} color="#ccff00" /> : <Eye size={24} color="#ccff00" />}
-                            <span style={{ fontSize: '0.75rem', color: '#999999', fontWeight: 600 }}>
+                            {showBalance ? <EyeOff size={24} color="var(--primary)" /> : <Eye size={24} color="var(--primary)" />}
+                            <span className="label-caps" style={{ color: 'var(--accent)', margin: 0 }}>
                                 {showBalance ? 'Hide' : 'Show'}
                             </span>
                         </button>
 
-                        <button style={{
+                        <button className="main-card" style={{
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             gap: '8px',
                             padding: '16px',
-                            background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            borderRadius: '20px',
                             cursor: 'pointer',
                             transition: 'all 0.2s'
                         }}>
-                            <Lock size={24} color="#ccff00" />
-                            <span style={{ fontSize: '0.75rem', color: '#999999', fontWeight: 600 }}>Lock</span>
+                            <Lock size={24} color="var(--primary)" />
+                            <span className="label-caps" style={{ color: 'var(--accent)', margin: 0 }}>Lock</span>
                         </button>
 
-                        <button style={{
+                        <button className="main-card" style={{
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             gap: '8px',
                             padding: '16px',
-                            background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            borderRadius: '20px',
                             cursor: 'pointer',
                             transition: 'all 0.2s'
                         }}>
-                            <RefreshCw size={24} color="#ccff00" />
-                            <span style={{ fontSize: '0.75rem', color: '#999999', fontWeight: 600 }}>Limit</span>
+                            <RefreshCw size={24} color="var(--primary)" />
+                            <span className="label-caps" style={{ color: 'var(--accent)', margin: 0 }}>Limit</span>
                         </button>
                     </div>
 
                     {/* Card Stats */}
-                    <div style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        borderRadius: '24px',
+                    <div className="main-card" style={{
                         padding: '24px',
                         marginBottom: '24px',
-                        border: '1px solid rgba(255,255,255,0.05)'
                     }}>
-                        <h3 style={{ fontWeight: 600, color: '#ffffff', marginBottom: '20px' }}>Monthly Summary</h3>
+                        <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', marginBottom: '20px', margin: 0 }}>Summary</h3>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                            <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                <p style={{ fontSize: '0.75rem', color: '#999999', marginBottom: '4px' }}>Total Payouts</p>
-                                <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff' }}>
-                                    {showBalance ? `${totalSpent.toFixed(2)} CFX` : "****"}
+                            <div className="main-card" style={{ padding: '16px' }}>
+                                <p className="label-caps" style={{ color: 'var(--accent)', marginBottom: '4px', margin: 0 }}>Total Payouts</p>
+                                <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
+                                    {showBalance ? `${totalSpent.toFixed(2)} SOL` : "****"}
                                 </p>
                             </div>
-                            <div style={{ padding: '16px', background: 'rgba(204, 255, 0, 0.05)', borderRadius: '16px', border: '1px solid rgba(204, 255, 0, 0.1)' }}>
-                                <p style={{ fontSize: '0.75rem', color: '#ccff00', marginBottom: '4px' }}>Total Yield</p>
-                                <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ccff00' }}>
-                                    {showBalance ? `${totalReceived.toFixed(2)} CFX` : "****"}
+                            <div className="main-card" style={{ padding: '16px' }}>
+                                <p className="label-caps" style={{ color: 'var(--primary)', marginBottom: '4px', margin: 0 }}>Total Yield</p>
+                                <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary)', margin: 0 }}>
+                                    {showBalance ? `${totalReceived.toFixed(2)} SOL` : "****"}
                                 </p>
                             </div>
                         </div>
 
-                        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                <span style={{ fontSize: '0.875rem', color: '#999999' }}>Account Usage</span>
-                                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#ffffff' }}>{history?.length || 0} stealth events</span>
+                                <span style={{ fontSize: '14px', color: 'var(--accent)' }}>Account Usage</span>
+                                <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--foreground)' }}>{history.length} stealth events</span>
                             </div>
-                            <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ height: '8px', background: 'rgba(0,0,0,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
                                 <div style={{
-                                    width: history?.length ? `${Math.min(history.length * 5, 100)}%` : '0%',
+                                    width: history.length ? `${Math.min(history.length * 5, 100)}%` : '0%',
                                     height: '100%',
-                                    background: '#ccff00',
+                                    background: 'var(--primary)',
                                     borderRadius: '4px',
                                     transition: 'width 0.5s ease',
-                                    boxShadow: '0 0 10px rgba(204, 255, 0, 0.3)'
                                 }}></div>
                             </div>
                         </div>
                     </div>
 
                     {/* Card Transactions */}
-                    <div style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        borderRadius: '24px',
+                    <div className="main-card" style={{
                         padding: '24px',
-                        border: '1px solid rgba(255,255,255,0.05)'
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                            <h3 style={{ fontWeight: 600, color: '#ffffff' }}>Recent Transactions</h3>
+                            <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>Recent Activity</h3>
                             <Link href="/history" style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '4px',
-                                fontSize: '0.875rem',
-                                color: '#ccff00',
-                                fontWeight: 600,
+                                fontSize: '14px',
+                                color: 'var(--primary)',
+                                fontWeight: 800,
                                 textDecoration: 'none'
                             }}>
                                 See All
@@ -261,36 +238,34 @@ export default function CardDetailPage() {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {cardTransactions.map((tx: any) => (
+                            {history.map((tx) => (
                                 <div
-                                    key={tx._id}
+                                    key={tx.id}
+                                    className="main-card"
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'space-between',
                                         padding: '12px',
-                                        borderRadius: '16px',
-                                        background: 'rgba(255,255,255,0.02)',
-                                        border: '1px solid rgba(255,255,255,0.03)'
                                     }}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <TransactionIcon icon={tx.direction === "sent" ? "send" : "receive"} />
                                         <div>
-                                            <p style={{ fontWeight: 500, color: '#ffffff', fontSize: '0.9375rem' }}>
+                                            <p style={{ fontWeight: 800, color: 'var(--foreground)', fontSize: '15px', margin: 0 }}>
                                                 {tx.direction === "sent" ? "Sent" : "Received"}
                                             </p>
-                                            <p style={{ fontSize: '0.75rem', color: '#999999' }}>
-                                                {new Date(tx.sentAt || tx.discoveredAt).toLocaleDateString()}
+                                            <p style={{ fontSize: '12px', color: 'var(--accent)', margin: 0 }}>
+                                                {new Date(tx.timestamp).toLocaleDateString()}
                                             </p>
                                         </div>
                                     </div>
 
                                     <div style={{ textAlign: 'right' }}>
-                                        <p style={{ fontWeight: 600, color: tx.direction === "sent" ? "#ffffff" : "#ccff00" }}>
-                                            {tx.direction === "sent" ? "-" : "+"}{tx.amountFormatted.split(' ')[0]}
+                                        <p style={{ fontWeight: 800, color: tx.direction === "sent" ? "var(--foreground)" : "var(--primary)", margin: 0 }}>
+                                            {tx.direction === "sent" ? "-" : "+"}{tx.amount}
                                         </p>
-                                        <p style={{ fontSize: '0.75rem', color: '#999999' }}>{tx.status}</p>
+                                        <p style={{ fontSize: '12px', color: 'var(--accent)', margin: 0 }}>{tx.status}</p>
                                     </div>
                                 </div>
                             ))}
@@ -311,7 +286,7 @@ export default function CardDetailPage() {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'rgba(0,0,0,0.6)',
+                        background: 'rgba(0,0,0,0.4)',
                         backdropFilter: 'blur(4px)',
                         zIndex: 50
                     }}

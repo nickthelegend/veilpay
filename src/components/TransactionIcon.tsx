@@ -13,6 +13,8 @@ import {
     Utensils,
     Home,
     Plane,
+    ArrowUpRight,
+    ArrowDownLeft,
     type LucideIcon
 } from "lucide-react";
 
@@ -30,6 +32,8 @@ const iconMap: Record<string, LucideIcon> = {
     food: Utensils,
     home: Home,
     travel: Plane,
+    send: ArrowUpRight,
+    receive: ArrowDownLeft,
 };
 
 interface TransactionIconProps {
@@ -50,9 +54,9 @@ export default function TransactionIcon({ icon, size = 20, className }: Transact
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(204, 255, 0, 0.2)'
+            border: '1px solid var(--border)'
         }} className={className}>
-            <IconComponent size={size} color="#ccff00" strokeWidth={2} />
+            <IconComponent size={size} color="var(--primary)" strokeWidth={2.5} />
         </div>
     );
 }

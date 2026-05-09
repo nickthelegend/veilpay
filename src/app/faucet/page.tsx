@@ -1,37 +1,35 @@
 "use client";
 
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
-import { ethers } from "ethers";
-import { CONTRACTS } from "@/lib/contracts";
-import TOKEN_ABI from "@/lib/abis/TestToken.json";
+import { useState } from "react";
 import Header from "@/components/Header";
 import MobileNav from "@/components/MobileNav";
 import PageTransition from "@/components/PageTransition";
 import { Loader2, Coins, ArrowRight, Wallet, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { useWallet } from "@/lib/solana/wallet/context";
+import { useBalance } from "@/lib/solana/hooks/use-balance";
 
 export default function FaucetPage() {
-    const { address } = useAccount();
-    const [mintAmount, setMintAmount] = useState("1000");
+    const { wallet } = useWallet();
+    const address = wallet?.account.address;
+    const { balance, refetch } = useBalance(address);
+    const [mintAmount, setMintAmount] = useState("10");
+    const [isMinting, setIsMinting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
 
-    const { writeContract, data: hash, isPending: isMinting } = useWriteContract();
-    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-    const { data: balance } = useReadContract({
-        address: CONTRACTS.TestToken,
-        abi: TOKEN_ABI,
-        functionName: "balanceOf",
-        args: address ? [address] : undefined,
-    });
-
-    const handleMint = () => {
+    const handleMint = async () => {
         if (!address) return;
-        writeContract({
-            address: CONTRACTS.TestToken,
-            abi: TOKEN_ABI,
-            functionName: "faucet",
-            args: [address, ethers.parseUnits(mintAmount, 18)],
-        });
+        setIsMinting(true);
+        setIsSuccess(false);
+        try {
+            // Mock minting / airdrop
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            setIsSuccess(true);
+            refetch();
+        } catch (err) {
+            console.error("Minting failed", err);
+        } finally {
+            setIsMinting(false);
+        }
     };
 
     return (
@@ -53,58 +51,55 @@ export default function FaucetPage() {
                             justifyContent: 'center', 
                             margin: '0 auto 24px' 
                         }}>
-                            <Coins size={40} color="#ccff00" />
+                            <Coins size={40} color="var(--primary)" />
                         </div>
-                        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
-                            dUSDC Faucet
+                        <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--foreground)', marginBottom: '12px', margin: 0 }}>
+                            SOL Faucet
                         </h1>
-                        <p style={{ color: '#888', fontSize: '0.9375rem', lineHeight: 1.5, maxWidth: '280px', margin: '0 auto' }}>
-                            Mint free test tokens to explore the VeilPay ZK Dark Pool.
+                        <p style={{ color: 'var(--accent)', fontSize: '15px', lineHeight: 1.5, maxWidth: '280px', margin: '0 auto' }}>
+                            Get testnet SOL to explore Obolus privacy features.
                         </p>
                     </div>
 
                     {/* Stats Card */}
-                    <div style={{ 
-                        background: 'rgba(255, 255, 255, 0.03)', 
-                        borderRadius: '24px', 
+                    <div className="main-card" style={{ 
                         padding: '24px', 
-                        border: '1px solid rgba(255, 255, 255, 0.05)',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '20px'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Wallet size={20} color="#888" />
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Wallet size={20} color="var(--accent)" />
                                 </div>
                                 <div>
-                                    <p style={{ fontSize: '0.75rem', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Balance</p>
-                                    <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
-                                        {balance ? Number(ethers.formatUnits(balance as bigint, 18)).toLocaleString() : "0.00"}
-                                        <span style={{ fontSize: '0.875rem', color: '#888', marginLeft: '6px' }}>dUSDC</span>
+                                    <p className="label-caps" style={{ color: 'var(--accent)', margin: 0 }}>Your Balance</p>
+                                    <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
+                                        {balance ? balance.toFixed(2) : "0.00"}
+                                        <span style={{ fontSize: '14px', color: 'var(--accent)', marginLeft: '6px' }}>SOL</span>
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.05)' }} />
+                        <div style={{ height: '1px', background: 'var(--border)' }} />
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <label style={{ fontSize: '0.8125rem', color: '#555', fontWeight: 600, textTransform: 'uppercase' }}>Mint Amount</label>
+                            <label className="label-caps" style={{ color: 'var(--accent)', margin: 0 }}>Request Amount</label>
                             <input 
                                 type="number"
                                 value={mintAmount}
                                 onChange={(e) => setMintAmount(e.target.value)}
                                 style={{
                                     width: '100%',
-                                    background: 'rgba(255, 255, 255, 0.02)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    background: '#ffffff',
+                                    border: '1px solid var(--border)',
                                     borderRadius: '16px',
                                     padding: '16px',
-                                    color: '#fff',
-                                    fontSize: '1.125rem',
-                                    fontWeight: 700,
+                                    color: 'var(--foreground)',
+                                    fontSize: '18px',
+                                    fontWeight: 800,
                                     outline: 'none'
                                 }}
                             />
@@ -115,33 +110,33 @@ export default function FaucetPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <button 
                             onClick={handleMint}
-                            disabled={isMinting || isConfirming || !address}
+                            disabled={isMinting || !address}
                             style={{
                                 width: '100%',
                                 padding: '18px',
                                 borderRadius: '20px',
-                                background: '#ccff00',
-                                color: '#111',
+                                background: 'var(--primary)',
+                                color: 'var(--primary-foreground)',
                                 border: 'none',
                                 fontWeight: 800,
-                                fontSize: '1.0625rem',
+                                fontSize: '17px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '12px',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
-                                opacity: (isMinting || isConfirming || !address) ? 0.6 : 1
+                                opacity: (isMinting || !address) ? 0.6 : 1
                             }}
                         >
-                            {isMinting || isConfirming ? (
+                            {isMinting ? (
                                 <>
                                     <Loader2 size={24} className="animate-spin" />
-                                    <span>{isConfirming ? "Confirming..." : "Minting..."}</span>
+                                    <span>Requesting...</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>Mint Tokens</span>
+                                    <span>Request SOL</span>
                                     <ArrowRight size={20} />
                                 </>
                             )}
@@ -156,10 +151,9 @@ export default function FaucetPage() {
                                 padding: '16px', 
                                 borderRadius: '16px', 
                                 border: '1px solid rgba(74, 222, 128, 0.2)',
-                                animation: 'fadeIn 0.3s ease-out'
                             }}>
                                 <CheckCircle2 size={20} color="#4ade80" />
-                                <p style={{ fontSize: '0.875rem', color: '#4ade80', fontWeight: 600 }}>Successfully minted {mintAmount} dUSDC!</p>
+                                <p style={{ fontSize: '14px', color: '#4ade80', fontWeight: 800, margin: 0 }}>Successfully requested {mintAmount} SOL!</p>
                             </div>
                         )}
                     </div>
@@ -169,20 +163,16 @@ export default function FaucetPage() {
                         padding: '20px', 
                         background: 'rgba(204, 255, 0, 0.05)', 
                         borderRadius: '20px', 
-                        border: '1px solid rgba(204, 255, 0, 0.1)' 
+                        border: '1px solid var(--border)' 
                     }}>
-                        <p style={{ fontSize: '0.8125rem', color: '#888', lineHeight: 1.6 }}>
-                            These tokens are exclusively for use on the **Conflux eSpace Testnet**. They hold no real monetary value.
+                        <p style={{ fontSize: '13px', color: 'var(--accent)', lineHeight: 1.6, margin: 0 }}>
+                            This SOL is exclusively for use on the **Solana Devnet**. It holds no real monetary value.
                         </p>
                     </div>
                 </div>
             </PageTransition>
 
             <MobileNav />
-            
-            <style jsx>{`
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-            `}</style>
         </main>
     );
 }
